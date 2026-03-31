@@ -4,6 +4,7 @@ from pydantic import BaseModel
 class RecommendationItem(BaseModel):
     movie_id: int
     title: str | None = None
+    poster_url: str | None = None
     score: float | None = None
     source: str  # "hybrid" | "content" | "collaborative" | "trending"
 

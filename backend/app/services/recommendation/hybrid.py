@@ -55,7 +55,6 @@ class HybridRecommender:
 
         content_weight, collab_weight = self._get_weights(len(ratings))
 
-        # Получаем рекомендации от обоих алгоритмов
         content_recs = await self.content.get_recommendations_for_user(
             liked_ids, seen_ids, top_n=top_n * 2
         )
@@ -63,11 +62,13 @@ class HybridRecommender:
             str(user_id), seen_ids, top_n=top_n * 2
         )
 
-        return self._merge(
+        merged = self._merge(
             content_recs, collab_recs,
             content_weight, collab_weight,
             top_n,
         )
+
+        return await self._enrich_merged(merged)
 
     async def get_similar(
         self, movie_id: int, top_n: int = 20
@@ -125,7 +126,6 @@ class HybridRecommender:
 
         top = sorted(merged.items(), key=lambda x: x[1], reverse=True)[:top_n]
 
-        # Определяем источник для прозрачности
         result = []
         for mid, score in top:
             if mid in content_norm and mid in collab_norm:
@@ -137,6 +137,28 @@ class HybridRecommender:
             result.append({"movie_id": mid, "score": round(score, 4), "source": source})
 
         return result
+
+    async def _enrich_merged(self, recs: list[dict]) -> list[dict]:
+        """Добавляет title ко всем рекомендациям из _merge."""
+        if not recs:
+            return []
+
+        ids = [r["movie_id"] for r in recs]
+        result = await self.db.execute(
+            select(Movie).where(Movie.id.in_(ids))
+        )
+        movies = {m.id: m for m in result.scalars().all()}
+
+        return [
+            {
+                "movie_id": r["movie_id"],
+                "title": movies[r["movie_id"]].title if r["movie_id"] in movies else None,
+                "poster_url": movies[r["movie_id"]].poster_url if r["movie_id"] in movies else None,
+                "score": r["score"],
+                "source": r["source"],
+            }
+            for r in recs
+        ]
 
     async def _enrich(
         self, recs: list[tuple[int, float]]
@@ -153,6 +175,7 @@ class HybridRecommender:
             {
                 "movie_id": mid,
                 "title": movies[mid].title if mid in movies else None,
+                "poster_url": movies[mid].poster_url if mid in movies else None, 
                 "score": round(score, 4),
                 "source": "content",
             }
