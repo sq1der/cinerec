@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.config import settings 
-from app.api.v1 import auth, movies, recommendations
+from app.api.v1 import auth, movies, recommendations, users
 
 app = FastAPI(
     title=settings.APP_NAME,
@@ -21,9 +21,8 @@ app.add_middleware(
 app.include_router(auth.router, prefix="/api/v1/auth", tags=["auth"])
 app.include_router(movies.router, prefix="/api/v1/movies", tags=["movies"])
 app.include_router(recommendations.router, prefix="/api/v1/recommendations", tags=["recommendations"])
-# Роутеры подключим позже, когда напишем эндпоинты
-# from app.api.v1 import auth, users, movies, recommendations
-# app.include_router(auth.router, prefix="/api/v1/auth", tags=["auth"])
+app.include_router(users.router, prefix="/api/v1/users", tags=["users"])
+
 
 @app.get("/health")
 async def health():
