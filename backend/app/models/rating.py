@@ -1,8 +1,10 @@
 import uuid
-from sqlalchemy import ForeignKey, Float, DateTime, func, UniqueConstraint, Integer, Uuid
+import secrets
+from sqlalchemy import ForeignKey, Float, DateTime, func, UniqueConstraint, Integer, Uuid, String, Boolean
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.dialects.postgresql import UUID
 from app.database import Base
+
 
 class Rating(Base):
     __tablename__ = "ratings"
@@ -33,3 +35,15 @@ class Watchlist(Base):
 
     user: Mapped["User"] = relationship(back_populates="watchlist")
     movie: Mapped["Movie"] = relationship(back_populates="watchlist")  
+
+class RefreshToken(Base):
+    __tablename__ = "refresh_tokens"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    user_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), index=True)
+    token_hash: Mapped[str] = mapped_column(String(64), unique=True, index=True)
+    expires_at: Mapped[DateTime] = mapped_column(DateTime(timezone=True))
+    revoked: Mapped[bool] = mapped_column(Boolean, default=False)
+    created_at: Mapped[DateTime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+    user: Mapped["User"] = relationship()

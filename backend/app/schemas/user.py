@@ -49,3 +49,7 @@ class UserResponse(BaseModel):
     created_at: datetime
 
     model_config = {"from_attributes": True}
+
+
+class LogoutRequest(BaseModel):
+    refresh_token: str | None = None
