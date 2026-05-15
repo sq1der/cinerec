@@ -41,7 +41,7 @@ python-dotenv==1.2.2
 python-jose==3.5.0
 python-multipart==0.0.22
 PyYAML==6.0.3
-redis==7.4.0
+redis[asyncio]==7.4.0
 rsa==4.9.1
 scikit-learn==1.8.0
 scikit-surprise==1.1.4

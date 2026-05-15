@@ -1,12 +1,22 @@
+from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.config import settings 
 from app.api.v1 import auth, movies, recommendations, users
+from app.core.redis import get_redis, close_redis
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    await get_redis()
+    yield
+    await close_redis()
 
 app = FastAPI(
     title=settings.APP_NAME,
     docs_url="/api/docs",
     redoc_url="/api/redoc",
+    lifespan=lifespan,
 )
 
 app.add_middleware(
