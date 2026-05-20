@@ -4,11 +4,19 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.config import settings 
 from app.api.v1 import auth, movies, recommendations, users
 from app.core.redis import get_redis, close_redis
+from app.services.recommendation.content_based import TFIDFModelData
+from app.services.recommendation.collaborative import SVDModelData
 
+
+class AppState:
+    tfidf_model: TFIDFModelData
+    svd_model: SVDModelData
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     await get_redis()
+    app.state.tfidf_model = TFIDFModelData()
+    app.state.svd_model = SVDModelData()
     yield
     await close_redis()
 

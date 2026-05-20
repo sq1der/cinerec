@@ -1,5 +1,5 @@
 import uuid
-from fastapi import Depends, HTTPException, status
+from fastapi import Depends, HTTPException, status, Request 
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.database import get_db
@@ -7,6 +7,7 @@ from app.core.security import decode_token
 from app.core.redis import cache_exists
 from app.repositories.user_repository import UserRepository
 from app.models.user import User
+from app.services.recommendation.hybrid import HybridRecommender
 
 bearer = HTTPBearer()
 
@@ -43,3 +44,13 @@ async def get_current_user(
     if not user or not user.is_active:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="User not found or inactive")
     return user
+
+async def get_recommender(
+    request: Request,
+    db: AsyncSession = Depends(get_db),
+) -> HybridRecommender:
+    return HybridRecommender(
+        db=db,
+        tfidf_model=request.app.state.tfidf_model,
+        svd_model=request.app.state.svd_model,
+    )
