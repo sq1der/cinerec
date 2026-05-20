@@ -1,12 +1,15 @@
+import json
 from fastapi import APIRouter, Depends, Query
-from sqlalchemy.ext.asyncio import AsyncSession
-from app.database import get_db
 from app.core.dependencies import get_current_user, get_recommender
+from app.core.redis import cache_get, cache_set
 from app.models.user import User
 from app.services.recommendation.hybrid import HybridRecommender
 from app.schemas.recommendation import RecommendationResponse
 
 router = APIRouter()
+
+TRENDING_TTL = 600       # 10 минут
+SIMILAR_TTL = 3600       # 1 час
 
 
 @router.get("/personal", response_model=RecommendationResponse)
@@ -29,11 +32,18 @@ async def similar_movies(
     top_n: int = Query(10, ge=1, le=50),
     recommender: HybridRecommender = Depends(get_recommender),
 ):
+    cache_key = f"similar:{movie_id}:{top_n}"
+    cached = await cache_get(cache_key)
+    if cached:
+        items = json.loads(cached)
+        return RecommendationResponse(
+            items=items, count=len(items), algorithm="content_based"
+        )
+
     items = await recommender.get_similar(movie_id, top_n)
+    await cache_set(cache_key, json.dumps(items), ttl=SIMILAR_TTL)
     return RecommendationResponse(
-        items=items,
-        count=len(items),
-        algorithm="content_based",
+        items=items, count=len(items), algorithm="content_based"
     )
 
 
@@ -42,9 +52,16 @@ async def trending(
     top_n: int = Query(20, ge=1, le=100),
     recommender: HybridRecommender = Depends(get_recommender),
 ):
+    cache_key = f"trending:{top_n}"
+    cached = await cache_get(cache_key)
+    if cached:
+        items = json.loads(cached)
+        return RecommendationResponse(
+            items=items, count=len(items), algorithm="trending"
+        )
+
     items = await recommender.get_trending(top_n)
+    await cache_set(cache_key, json.dumps(items), ttl=TRENDING_TTL)
     return RecommendationResponse(
-        items=items,
-        count=len(items),
-        algorithm="trending",
+        items=items, count=len(items), algorithm="trending"
     )

@@ -1,18 +1,23 @@
+import json
 from fastapi import APIRouter, Depends, Query, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.database import get_db
 from app.services.movie_service import MovieService
-from app.repositories.movie_repository import MovieRepository 
+from app.repositories.movie_repository import MovieRepository
+from app.core.dependencies import get_current_user
+from app.core.redis import cache_get, cache_set, cache_delete
 from app.schemas.movie import (
     MovieResponse,
     MovieListResponse,
     RatingRequest,
     RatingResponse,
 )
-from app.core.dependencies import get_current_user
 from app.models.user import User
 
 router = APIRouter()
+
+MOVIE_TTL = 1800     # 30 минут
+SEARCH_TTL = 300     # 5 минут
 
 
 @router.get("/", response_model=MovieListResponse)
@@ -33,8 +38,16 @@ async def search_movies(
     q: str = Query(..., min_length=2),
     db: AsyncSession = Depends(get_db),
 ):
+    cache_key = f"search:{q.lower().strip()}"
+    cached = await cache_get(cache_key)
+    if cached:
+        return json.loads(cached)
+
     service = MovieService(db)
-    return await service.search(q)
+    results = await service.search(q)
+    serialized = [MovieResponse.model_validate(m).model_dump(mode="json") for m in results]
+    await cache_set(cache_key, json.dumps(serialized), ttl=SEARCH_TTL)
+    return results
 
 
 @router.get("/{movie_id}/rate", response_model=RatingResponse)
@@ -60,11 +73,7 @@ async def get_movie_ratings(
 ):
     service = MovieService(db)
     movie = await service.get_by_id(movie_id)
-    return {
-        "movie_id": movie_id,
-        "rating": movie.rating,
-        "vote_count": movie.vote_count,
-    }
+    return {"movie_id": movie_id, "rating": movie.rating, "vote_count": movie.vote_count}
 
 
 @router.post("/{movie_id}/rate", response_model=RatingResponse)
@@ -75,7 +84,10 @@ async def rate_movie(
     db: AsyncSession = Depends(get_db),
 ):
     service = MovieService(db)
-    return await service.rate_movie(current_user.id, movie_id, data.score)
+    rating = await service.rate_movie(current_user.id, movie_id, data.score)
+    # Инвалидируем кэш фильма — рейтинг изменился
+    await cache_delete(f"movie:{movie_id}")
+    return rating
 
 
 @router.post("/{movie_id}/watchlist")
@@ -89,6 +101,17 @@ async def toggle_watchlist(
 
 
 @router.get("/{movie_id}", response_model=MovieResponse)
-async def get_movie(movie_id: int, db: AsyncSession = Depends(get_db)):
+async def get_movie(
+    movie_id: int,
+    db: AsyncSession = Depends(get_db),
+):
+    cache_key = f"movie:{movie_id}"
+    cached = await cache_get(cache_key)
+    if cached:
+        return json.loads(cached)
+
     service = MovieService(db)
-    return await service.get_by_id(movie_id)
+    movie = await service.get_by_id(movie_id)
+    serialized = MovieResponse.model_validate(movie).model_dump(mode="json")
+    await cache_set(cache_key, json.dumps(serialized), ttl=MOVIE_TTL)
+    return movie
