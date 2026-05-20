@@ -16,6 +16,12 @@ class Settings(BaseSettings):
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
     REFRESH_TOKEN_EXPIRE_DAYS: int = 30
 
+    CORS_ORIGINS: str = "http://localhost:3000,https://ssndxz.github.io"
+    
+    def get_cors_origins(self) -> list[str]:
+        return [o.strip() for o in self.CORS_ORIGINS.split(",")]
+
+
 
 @lru_cache
 def get_settings() -> Settings:
