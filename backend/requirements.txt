@@ -43,7 +43,7 @@ python-multipart==0.0.22
 PyYAML==6.0.3
 redis[asyncio]==7.4.0
 rsa==4.9.1
-scikit-learn==1.8.0
+scikit-learn==1.6.1
 slowapi==0.1.9
 scikit-surprise==1.1.4
 scipy==1.17.1
