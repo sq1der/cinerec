@@ -19,10 +19,10 @@ depends_on: Union[str, Sequence[str], None] = None
 
 
 def upgrade() -> None:
-    op.create_index("ix_ratings_user_id", "ratings", ["user_id"])
-    op.create_index("ix_ratings_movie_id", "ratings", ["movie_id"])
-    op.create_index("ix_watchlist_user_id", "watchlist", ["user_id"])
-    op.create_index("ix_watchlist_movie_id", "watchlist", ["movie_id"])
+    op.create_index("ix_ratings_user_id", "ratings", ["user_id"], if_not_exists=True)
+    op.create_index("ix_ratings_movie_id", "ratings", ["movie_id"], if_not_exists=True)
+    op.create_index("ix_watchlist_user_id", "watchlist", ["user_id"], if_not_exists=True)
+    op.create_index("ix_watchlist_movie_id", "watchlist", ["movie_id"], if_not_exists=True)
 
 def downgrade() -> None:
     op.drop_index("ix_ratings_user_id", "ratings")
