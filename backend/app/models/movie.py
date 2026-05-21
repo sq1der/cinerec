@@ -21,5 +21,5 @@ class Movie(Base):
         DateTime(timezone=True), server_default=func.now()
     )
 
-    ratings: Mapped[list["Rating"]] = relationship(back_populates="movie", lazy="selectin")
-    watchlist: Mapped[list["Watchlist"]] = relationship(back_populates="movie", lazy="selectin") 
+    ratings: Mapped[list["Rating"]] = relationship(back_populates="movie", lazy="noload")
+    watchlist: Mapped[list["Watchlist"]] = relationship(back_populates="movie", lazy="noload") 

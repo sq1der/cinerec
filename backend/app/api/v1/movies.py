@@ -89,6 +89,26 @@ async def rate_movie(
     await cache_delete(f"movie:{movie_id}")
     return rating
 
+@router.delete("/{movie_id}/rate", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_rating(
+    movie_id: int,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    service = MovieService(db)
+    await service.delete_rating(current_user.id, movie_id)
+    await cache_delete(f"movie:{movie_id}")
+
+
+@router.delete("/{movie_id}/watchlist", status_code=status.HTTP_204_NO_CONTENT)
+async def remove_from_watchlist(
+    movie_id: int,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    service = MovieService(db)
+    await service.remove_from_watchlist(current_user.id, movie_id)
+
 
 @router.post("/{movie_id}/watchlist")
 async def toggle_watchlist(

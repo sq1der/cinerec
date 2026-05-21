@@ -132,3 +132,34 @@ class MovieRepository:
         else:
             self.db.add(Watchlist(user_id=user_id, movie_id=movie_id))
             return {"action": "added", "movie_id": movie_id}
+    
+    async def delete_rating(self, user_id: uuid.UUID, movie_id: int) -> bool:
+        rating = await self.get_rating(user_id, movie_id)
+        if not rating:
+            return False
+        await self.db.execute(
+            delete(Rating).where(
+                Rating.user_id == user_id,
+                Rating.movie_id == movie_id,
+            )
+        )
+        await self._update_movie_rating(movie_id)
+        return True
+
+    async def remove_from_watchlist(self, user_id: uuid.UUID, movie_id: int) -> bool:
+        existing = await self.db.execute(
+            select(Watchlist).where(
+                Watchlist.user_id == user_id,
+               Watchlist.movie_id == movie_id,
+            )
+        )
+        item = existing.scalar_one_or_none()
+        if not item:
+            return False
+        await self.db.execute(
+            delete(Watchlist).where(
+                Watchlist.user_id == user_id,
+                Watchlist.movie_id == movie_id,
+            )
+        )
+        return True

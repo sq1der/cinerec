@@ -16,5 +16,5 @@ class User(Base):
         DateTime(timezone=True), server_default=func.now()
     )
 
-    ratings: Mapped[list["Rating"]] = relationship(back_populates="user", lazy="selectin")
-    watchlist: Mapped[list["Watchlist"]] = relationship(back_populates="user", lazy="selectin")
+    ratings: Mapped[list["Rating"]] = relationship(back_populates="user", lazy="noload")
+    watchlist: Mapped[list["Watchlist"]] = relationship(back_populates="user", lazy="noload")

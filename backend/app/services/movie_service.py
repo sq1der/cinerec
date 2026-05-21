@@ -63,3 +63,21 @@ class MovieService:
 
     async def get_watchlist(self, user_id: uuid.UUID):
         return await self.repo.get_watchlist(user_id)
+    
+    async def delete_rating(self, user_id: uuid.UUID, movie_id: int) -> None:
+        await self.get_by_id(movie_id)
+        deleted = await self.repo.delete_rating(user_id, movie_id)
+        if not deleted:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Rating not found",
+            )
+
+    async def remove_from_watchlist(self, user_id: uuid.UUID, movie_id: int) -> None:
+        await self.get_by_id(movie_id)
+        removed = await self.repo.remove_from_watchlist(user_id, movie_id)
+        if not removed:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Movie not in watchlist",
+            )
