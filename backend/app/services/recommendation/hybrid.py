@@ -1,10 +1,14 @@
 import uuid
+import time
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.models.rating import Rating
 from app.models.movie import Movie
+from app.core.logging import get_logger
 from app.services.recommendation.content_based import ContentBasedRecommender, TFIDFModelData
 from app.services.recommendation.collaborative import CollaborativeRecommender, SVDModelData
+
+logger = get_logger("app.recommender")
 
 
 class HybridRecommender:
@@ -37,9 +41,13 @@ class HybridRecommender:
             return 0.3, 0.7
 
     async def get_personal(self, user_id: uuid.UUID, top_n: int = 20) -> list[dict]:
+        t0 = time.perf_counter()
         ratings = await self._get_user_ratings(user_id)
         if len(ratings) < self.COLD_START_THRESHOLD:
-            return await self.get_trending(top_n)
+            result = await self.get_trending(top_n)
+            logger.info(f"personal:{user_id} → cold_start ({len(result)} items, {(time.perf_counter()-t0)*1000:.1f}ms)")
+            return result
+
         seen_ids = {r.movie_id for r in ratings}
         liked_ids = [r.movie_id for r in ratings if r.score >= 7.0] or [
             r.movie_id for r in ratings[:5]
@@ -52,7 +60,12 @@ class HybridRecommender:
             str(user_id), seen_ids, top_n=top_n * 2
         )
         merged = self._merge(content_recs, collab_recs, content_weight, collab_weight, top_n)
-        return await self._enrich_merged(merged)
+        result = await self._enrich_merged(merged)
+        logger.info(
+            f"personal:{user_id} → hybrid (content={content_weight}, collab={collab_weight}, "
+            f"{len(result)} items, {(time.perf_counter()-t0)*1000:.1f}ms)"
+        )
+        return result
 
     async def get_similar(self, movie_id: int, top_n: int = 20) -> list[dict]:
         recs = await self.content.get_similar(movie_id, top_n)
