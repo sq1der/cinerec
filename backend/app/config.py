@@ -17,6 +17,7 @@ class Settings(BaseSettings):
     REFRESH_TOKEN_EXPIRE_DAYS: int = 30
 
     CORS_ORIGINS: str = "http://localhost:3000,https://ssndxz.github.io"
+    TMDB_API_KEY: str = ""
     
     def get_cors_origins(self) -> list[str]:
         return [o.strip() for o in self.CORS_ORIGINS.split(",")]
