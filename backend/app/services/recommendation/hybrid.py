@@ -120,12 +120,13 @@ class HybridRecommender:
         return [
             {
                 "movie_id": r["movie_id"],
-                "title": movies[r["movie_id"]].title if r["movie_id"] in movies else None,
-                "poster_url": movies[r["movie_id"]].poster_url if r["movie_id"] in movies else None,
+                "title": movies[r["movie_id"]].title,
+                "poster_url": movies[r["movie_id"]].poster_url,
                 "score": r["score"],
                 "source": r["source"],
             }
             for r in recs
+            if r["movie_id"] in movies
         ]
 
     async def _enrich(self, recs: list[tuple[int, float]]) -> list[dict]:
@@ -137,8 +138,8 @@ class HybridRecommender:
         return [
             {
                 "movie_id": mid,
-                "title": movies[mid].title if mid in movies else None,
-                "poster_url": movies[mid].poster_url if mid in movies else None,
+                "title": movies[mid].title,
+                "poster_url": movies[mid].poster_url,
                 "score": round(score, 4),
                 "source": "content",
             }
